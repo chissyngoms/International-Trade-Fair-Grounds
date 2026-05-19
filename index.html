@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/multi-style-layer.js"></script>
+        <script src="js/leaflet-svg-shape-markers.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/Base_0.js"></script>
+        <script src="data/Grounds_1.js"></script>
+        <script src="data/Greens_2.js"></script>
+        <script src="data/Browns_3.js"></script>
+        <script src="data/FootballPitch_4.js"></script>
+        <script src="data/ZITFBoundary_5.js"></script>
+        <script src="data/ZITFRoads_6.js"></script>
+        <script src="data/RailwayLine_7.js"></script>
+        <script src="data/MapExtent_8.js"></script>
+        <script src="data/ZITFBuildings_9.js"></script>
+        <script src="data/ZITFStands_10.js"></script>
+        <script src="data/Gates_11.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[-13.020646945170073,28.65752256436372],[-13.020208608545127,28.658224502253226]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        function pop_Base_0(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">id</th>\
+                        <td>' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Boundary'] !== null ? autolinker.link(String(feature.properties['Boundary']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Base_0_0() {
+            return {
+                pane: 'pane_Base_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(244,239,228,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Base_0');
+        map.getPane('pane_Base_0').style.zIndex = 400;
+        map.getPane('pane_Base_0').style['mix-blend-mode'] = 'normal';
+        var layer_Base_0 = new L.geoJson(json_Base_0, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Base_0',
+            layerName: 'layer_Base_0',
+            pane: 'pane_Base_0',
+            onEachFeature: pop_Base_0,
+            style: style_Base_0_0,
+        });
+        bounds_group.addLayer(layer_Base_0);
+        map.addLayer(layer_Base_0);
+        function pop_Grounds_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Boundary'] !== null ? autolinker.link(String(feature.properties['Boundary']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Area'] !== null ? autolinker.link(String(feature.properties['Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Grounds_1_0() {
+            return {
+                pane: 'pane_Grounds_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 4.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(137,178,134,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Grounds_1');
+        map.getPane('pane_Grounds_1').style.zIndex = 401;
+        map.getPane('pane_Grounds_1').style['mix-blend-mode'] = 'normal';
+        var layer_Grounds_1 = new L.geoJson(json_Grounds_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Grounds_1',
+            layerName: 'layer_Grounds_1',
+            pane: 'pane_Grounds_1',
+            onEachFeature: pop_Grounds_1,
+            style: style_Grounds_1_0,
+        });
+        bounds_group.addLayer(layer_Grounds_1);
+        map.addLayer(layer_Grounds_1);
+        function pop_Greens_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Browns'] !== null ? autolinker.link(String(feature.properties['Browns']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Greens_2_0() {
+            return {
+                pane: 'pane_Greens_2',
+                opacity: 1,
+                color: 'rgba(114,155,111,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_Greens_2');
+        map.getPane('pane_Greens_2').style.zIndex = 402;
+        map.getPane('pane_Greens_2').style['mix-blend-mode'] = 'normal';
+        var layer_Greens_2 = new L.geoJson(json_Greens_2, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_Greens_2',
+            layerName: 'layer_Greens_2',
+            pane: 'pane_Greens_2',
+            onEachFeature: pop_Greens_2,
+            style: style_Greens_2_0,
+        });
+        bounds_group.addLayer(layer_Greens_2);
+        map.addLayer(layer_Greens_2);
+        function pop_Browns_3(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Fields'] !== null ? autolinker.link(String(feature.properties['Fields']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Browns_3_0() {
+            return {
+                pane: 'pane_Browns_3',
+                opacity: 1,
+                color: 'rgba(200,178,138,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(200,178,138,1.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_Browns_3');
+        map.getPane('pane_Browns_3').style.zIndex = 403;
+        map.getPane('pane_Browns_3').style['mix-blend-mode'] = 'normal';
+        var layer_Browns_3 = new L.geoJson(json_Browns_3, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_Browns_3',
+            layerName: 'layer_Browns_3',
+            pane: 'pane_Browns_3',
+            onEachFeature: pop_Browns_3,
+            style: style_Browns_3_0,
+        });
+        bounds_group.addLayer(layer_Browns_3);
+        map.addLayer(layer_Browns_3);
+        function pop_FootballPitch_4(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Boundary'] !== null ? autolinker.link(String(feature.properties['Boundary']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_FootballPitch_4_0() {
+            return {
+                pane: 'pane_FootballPitch_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_FootballPitch_4');
+        map.getPane('pane_FootballPitch_4').style.zIndex = 404;
+        map.getPane('pane_FootballPitch_4').style['mix-blend-mode'] = 'normal';
+        var layer_FootballPitch_4 = new L.geoJson(json_FootballPitch_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_FootballPitch_4',
+            layerName: 'layer_FootballPitch_4',
+            pane: 'pane_FootballPitch_4',
+            onEachFeature: pop_FootballPitch_4,
+            style: style_FootballPitch_4_0,
+        });
+        bounds_group.addLayer(layer_FootballPitch_4);
+        map.addLayer(layer_FootballPitch_4);
+        function pop_ZITFBoundary_5(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Boundary'] !== null ? autolinker.link(String(feature.properties['Boundary']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Area'] !== null ? autolinker.link(String(feature.properties['Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ZITFBoundary_5_0() {
+            return {
+                pane: 'pane_ZITFBoundary_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 4.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(164,113,88,0.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_ZITFBoundary_5');
+        map.getPane('pane_ZITFBoundary_5').style.zIndex = 405;
+        map.getPane('pane_ZITFBoundary_5').style['mix-blend-mode'] = 'normal';
+        var layer_ZITFBoundary_5 = new L.geoJson(json_ZITFBoundary_5, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_ZITFBoundary_5',
+            layerName: 'layer_ZITFBoundary_5',
+            pane: 'pane_ZITFBoundary_5',
+            onEachFeature: pop_ZITFBoundary_5,
+            style: style_ZITFBoundary_5_0,
+        });
+        bounds_group.addLayer(layer_ZITFBoundary_5);
+        map.addLayer(layer_ZITFBoundary_5);
+        function pop_ZITFRoads_6(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type'] !== null ? autolinker.link(String(feature.properties['Type']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ZITFRoads_6_0() {
+            return {
+                pane: 'pane_ZITFRoads_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 6.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+        }
+        function style_ZITFRoads_6_1() {
+            return {
+                pane: 'pane_ZITFRoads_6',
+                opacity: 1,
+                color: 'rgba(204,102,67,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 6.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+        }
+        map.createPane('pane_ZITFRoads_6');
+        map.getPane('pane_ZITFRoads_6').style.zIndex = 406;
+        map.getPane('pane_ZITFRoads_6').style['mix-blend-mode'] = 'normal';
+        var layer_ZITFRoads_6 = new L.geoJson.multiStyle(json_ZITFRoads_6, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_ZITFRoads_6',
+            layerName: 'layer_ZITFRoads_6',
+            pane: 'pane_ZITFRoads_6',
+            onEachFeature: pop_ZITFRoads_6,
+            styles: [style_ZITFRoads_6_0,style_ZITFRoads_6_1,]
+        });
+        bounds_group.addLayer(layer_ZITFRoads_6);
+        map.addLayer(layer_ZITFRoads_6);
+        function pop_RailwayLine_7(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Railway Li'] !== null ? autolinker.link(String(feature.properties['Railway Li']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_RailwayLine_7_0() {
+            return {
+                pane: 'pane_RailwayLine_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+        }
+        function style_RailwayLine_7_1() {
+            return {
+                pane: 'pane_RailwayLine_7',
+                opacity: 1,
+                color: 'rgba(175,195,204,1.0)',
+                dashArray: '8.0,4.0,2.0,4.0,2.0,4.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+        }
+        map.createPane('pane_RailwayLine_7');
+        map.getPane('pane_RailwayLine_7').style.zIndex = 407;
+        map.getPane('pane_RailwayLine_7').style['mix-blend-mode'] = 'normal';
+        var layer_RailwayLine_7 = new L.geoJson.multiStyle(json_RailwayLine_7, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_RailwayLine_7',
+            layerName: 'layer_RailwayLine_7',
+            pane: 'pane_RailwayLine_7',
+            onEachFeature: pop_RailwayLine_7,
+            styles: [style_RailwayLine_7_0,style_RailwayLine_7_1,]
+        });
+        bounds_group.addLayer(layer_RailwayLine_7);
+        map.addLayer(layer_RailwayLine_7);
+        function pop_MapExtent_8(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Boundary'] !== null ? autolinker.link(String(feature.properties['Boundary']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_MapExtent_8_0() {
+            return {
+                pane: 'pane_MapExtent_8',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '25.0,5.0',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(244,239,228,0.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_MapExtent_8');
+        map.getPane('pane_MapExtent_8').style.zIndex = 408;
+        map.getPane('pane_MapExtent_8').style['mix-blend-mode'] = 'normal';
+        var layer_MapExtent_8 = new L.geoJson(json_MapExtent_8, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_MapExtent_8',
+            layerName: 'layer_MapExtent_8',
+            pane: 'pane_MapExtent_8',
+            onEachFeature: pop_MapExtent_8,
+            style: style_MapExtent_8_0,
+        });
+        bounds_group.addLayer(layer_MapExtent_8);
+        map.addLayer(layer_MapExtent_8);
+        function pop_ZITFBuildings_9(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">id</th>\
+                        <td>' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Category'] !== null ? autolinker.link(String(feature.properties['Category']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Size'] !== null ? autolinker.link(String(feature.properties['Size']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Color</th>\
+                        <td>' + (feature.properties['Color'] !== null ? autolinker.link(String(feature.properties['Color']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Shape</th>\
+                        <td>' + (feature.properties['Shape'] !== null ? autolinker.link(String(feature.properties['Shape']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ZITFBuildings_9_0() {
+            return {
+                pane: 'pane_ZITFBuildings_9',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(138,111,88,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_ZITFBuildings_9');
+        map.getPane('pane_ZITFBuildings_9').style.zIndex = 409;
+        map.getPane('pane_ZITFBuildings_9').style['mix-blend-mode'] = 'normal';
+        var layer_ZITFBuildings_9 = new L.geoJson(json_ZITFBuildings_9, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ZITFBuildings_9',
+            layerName: 'layer_ZITFBuildings_9',
+            pane: 'pane_ZITFBuildings_9',
+            onEachFeature: pop_ZITFBuildings_9,
+            style: style_ZITFBuildings_9_0,
+        });
+        bounds_group.addLayer(layer_ZITFBuildings_9);
+        map.addLayer(layer_ZITFBuildings_9);
+        function pop_ZITFStands_10(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Stand Number</th>\
+                        <td>' + (feature.properties['stand_number'] !== null ? autolinker.link(String(feature.properties['stand_number']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Company Name</th>\
+                        <td>' + (feature.properties['company_name'] !== null ? autolinker.link(String(feature.properties['company_name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">category</th>\
+                        <td>' + (feature.properties['category'] !== null ? autolinker.link(String(feature.properties['category']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['description'] !== null ? autolinker.link(String(feature.properties['description']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">building_id</th>\
+                        <td>' + (feature.properties['building_id'] !== null ? autolinker.link(String(feature.properties['building_id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ZITFStands_10_0() {
+            return {
+                pane: 'pane_ZITFStands_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(200,178,138,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(200,178,138,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_ZITFStands_10');
+        map.getPane('pane_ZITFStands_10').style.zIndex = 410;
+        map.getPane('pane_ZITFStands_10').style['mix-blend-mode'] = 'normal';
+        var layer_ZITFStands_10 = new L.geoJson(json_ZITFStands_10, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ZITFStands_10',
+            layerName: 'layer_ZITFStands_10',
+            pane: 'pane_ZITFStands_10',
+            onEachFeature: pop_ZITFStands_10,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_ZITFStands_10_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_ZITFStands_10);
+        map.addLayer(layer_ZITFStands_10);
+        function pop_Gates_11(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Gates</th>\
+                        <td>' + (feature.properties['Gates'] !== null ? autolinker.link(String(feature.properties['Gates']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Gates_11_0() {
+            return {
+                pane: 'pane_Gates_11',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(141,90,153,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Gates_11');
+        map.getPane('pane_Gates_11').style.zIndex = 411;
+        map.getPane('pane_Gates_11').style['mix-blend-mode'] = 'normal';
+        var layer_Gates_11 = new L.geoJson(json_Gates_11, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Gates_11',
+            layerName: 'layer_Gates_11',
+            pane: 'pane_Gates_11',
+            onEachFeature: pop_Gates_11,
+            style: style_Gates_11_0,
+        });
+        bounds_group.addLayer(layer_Gates_11);
+        map.addLayer(layer_Gates_11);
+        var overlaysTree = [
+        {label: '<b>group2</b>',  selectAllCheckbox: true, children: [
+            {label: '<img src="legend/Gates_11.png" /> Gates', layer: layer_Gates_11},
+            {label: '<img src="legend/ZITFStands_10.png" /> ZITF Stands', layer: layer_ZITFStands_10},
+            {label: '<img src="legend/ZITFBuildings_9.png" /> ZITF Buildings', layer: layer_ZITFBuildings_9},
+            {label: '<img src="legend/MapExtent_8.png" /> Map Extent', layer: layer_MapExtent_8},
+            {label: '<img src="legend/RailwayLine_7.png" /> Railway Line', layer: layer_RailwayLine_7},
+            {label: '<img src="legend/ZITFRoads_6.png" /> ZITF Roads', layer: layer_ZITFRoads_6},
+            {label: '<img src="legend/ZITFBoundary_5.png" /> ZITF Boundary', layer: layer_ZITFBoundary_5},
+            {label: '<img src="legend/FootballPitch_4.png" /> Football Pitch', layer: layer_FootballPitch_4},
+            {label: '<img src="legend/Browns_3.png" /> Browns', layer: layer_Browns_3},
+            {label: '<img src="legend/Greens_2.png" /> Greens', layer: layer_Greens_2},
+            {label: '<img src="legend/Grounds_1.png" /> Grounds', layer: layer_Grounds_1},
+            {label: '<img src="legend/Base_0.png" /> Base', layer: layer_Base_0},]},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_ZITFStands_10,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'company_name'}));
+        if (typeof url === 'undefined') {
+            document.getElementsByClassName('search-button')[0].className += ' fa fa-binoculars';
+        } else {
+            document.getElementsByClassName('search-button')[1].className += ' fa fa-binoculars';
+        }
+        resetLabels([layer_Gates_11]);
+        map.on("zoomend", function(){
+            resetLabels([layer_Gates_11]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_Gates_11]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_Gates_11]);
+        });
+        </script>        
+    </body>
+</html>
